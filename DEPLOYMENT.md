@@ -37,9 +37,8 @@ You have two options:
 
 ### 3. Run Database Migrations
 
-You need to run migrations before deploying. You can do this in two ways:
+You need to run migrations before deploying:
 
-#### Option A: Run Locally Before Deploying
 ```bash
 # Set your production database URL
 export NETLIFY_DATABASE_URL="your_production_database_url"
@@ -48,12 +47,7 @@ export NETLIFY_DATABASE_URL="your_production_database_url"
 npx prisma migrate deploy
 ```
 
-#### Option B: Add to Build Command in Netlify
-Update your `netlify.toml` build command:
-```toml
-[build]
-  command = "prisma migrate deploy && npm run build"
-```
+**Important:** Run migrations BEFORE your first deployment. You cannot run migrations automatically during Netlify build as the database needs to be set up first.
 
 ### 4. Deploy to Netlify
 
@@ -84,24 +78,54 @@ After deployment, test your API endpoints:
 
 ## Troubleshooting
 
+### "Page Not Found" / 404 Error on Deployed Site
+This is the most common issue. Solutions:
+
+1. **Clear Netlify Cache and Redeploy:**
+   - Go to Netlify dashboard → Deploys
+   - Click "Trigger deploy" → "Clear cache and deploy site"
+
+2. **Verify Build Output:**
+   - Check that `.output/public` directory exists after build
+   - Ensure build completes successfully without errors
+
+3. **Check `netlify.toml` Configuration:**
+   - Make sure `publish = ".output/public"` (NOT `dist`)
+   - Verify redirect is pointing to `/.netlify/builders/server`
+
+4. **Ensure Environment Variables Are Set:**
+   - Go to Site Settings → Environment Variables
+   - Verify `NETLIFY_DATABASE_URL` is set
+
 ### Backend API Returns 500 Error
 - Check that `NETLIFY_DATABASE_URL` environment variable is set correctly
-- Verify database migrations have been run
-- Check Netlify function logs for detailed error messages
+- Verify database migrations have been run: `npx prisma migrate deploy`
+- Check Netlify function logs: Site → Functions → View logs
+- Test database connection string locally first
 
 ### Prisma Client Not Found
 - Make sure `prisma generate` runs during build (it's in the build script)
 - Check that `@prisma/client` and `prisma` are properly listed in dependencies
+- Clear cache and redeploy
 
 ### Database Connection Issues
 - Ensure your database URL includes `?sslmode=require` for secure connections
-- Verify database is accessible from external connections
+- Verify database is accessible from external connections (check IP allowlisting)
 - Check firewall rules if using a self-hosted database
+- Test the connection string with `npx prisma db pull` locally
 
 ### Build Fails
 - Check Node version is set to 20 in `netlify.toml`
 - Verify all dependencies are installed
 - Review build logs in Netlify dashboard
+- Ensure `prisma generate` completes successfully
+- Check for TypeScript errors
+
+### Functions Not Working
+- Check Netlify Functions logs for errors
+- Verify `@prisma/client` is in `external_node_modules` in `netlify.toml`
+- Ensure your API routes are in `server/api/` directory
+- Test endpoints locally with `npm run build && npm run preview`
 
 ## Local Development
 
